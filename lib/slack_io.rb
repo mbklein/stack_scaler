@@ -1,3 +1,5 @@
+require 'slack-web-client'
+
 class SlackIO < IO
 
   FORMATTER = proc { |severity, datetime, progname, msg|

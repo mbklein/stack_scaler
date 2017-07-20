@@ -4,7 +4,6 @@ $: << File.expand_path('../lib', __FILE__)
 require 'json'
 require 'stack_scaler'
 require 'slack_io'
-require 'slack-notifier'
 require 'yaml'
 require 'sinatra'
 require 'sinatra/config_file'
