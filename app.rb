@@ -51,7 +51,11 @@ class ScalingApp < Sinatra::Base
 
     def background
       child_pid = Process.fork do
-        yield
+        begin
+          yield
+        rescue StandardError => err
+          notifier.fatal([err.class.name, err.message].join(': '))
+        end
         Process.exit
       end
       Process.detach(child_pid)
