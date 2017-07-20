@@ -8,6 +8,7 @@ require 'slack_io'
 require 'yaml'
 require 'sinatra'
 require 'sinatra/config_file'
+require 'faraday'
 
 class ScalingApp < Sinatra::Base
   register Sinatra::ConfigFile
@@ -18,6 +19,10 @@ class ScalingApp < Sinatra::Base
   end
 
   helpers do
+    def slack_bot
+      @slack_bot ||= ::Slack::Web::Client.new(token: settings.bot_token)
+    end
+
     def notifier
       if @notifier.nil?
         @notifier = Logger.new(SlackIO.new(token: settings.bot_token, channel: params[:channel_id], title: params[:text], user: "<@#{params[:user_id]}|#{params[:user_name]}>"))
@@ -61,6 +66,17 @@ class ScalingApp < Sinatra::Base
       end
       Process.detach(child_pid)
     end
+  end
+
+  post '/notify' do
+    message = JSON.parse(request.body.read)
+    text = if request.env['HTTP_X_AMZ_SNS_MESSAGE_TYPE'] == 'SubscriptionConfirmation'
+      "*Subscription Confirmation*\nSomeone subscribed this channel to `#{message['TopicArn']}`. To confirm, please visit #{message['SubscribeURL']}."
+    else
+      "*#{message['Subject']}*\n#{message['Message']}"
+    end
+    slack_bot.chat_postMessage(channel: settings.control_channel_id, text: text, as_user: true)
+    'OK'
   end
 
   post '/webhook' do
