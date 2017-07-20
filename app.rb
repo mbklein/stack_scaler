@@ -66,12 +66,53 @@ class ScalingApp < Sinatra::Base
       end
       Process.detach(child_pid)
     end
+
+    def subscription_response(payload)
+      #original_message = payload['original_message']
+      action = payload['actions'].first
+      response_text = case action['name']
+      when 'deny'
+        ':negative_squared_cross_mark: _Subscription canceled_'
+      when 'confirm'
+        Faraday.get(action['value'])
+        ':white_check_mark: _Subscription confirmed_'
+      end
+
+      { text: response_text }.to_json
+      #{
+      #  text: original_message['text'],
+      #  attachments: [
+      #    { text: response_text, attachment_type: 'default' }
+      #  ]
+      #}.to_json
+    end
+  end
+
+  post '/action' do
+    payload = JSON.parse(params[:payload])
+    case payload['callback_id']
+    when 'subscription_confirm' then subscription_response(payload)
+    end
   end
 
   post '/notify' do
     message = JSON.parse(request.body.read)
     text = if request.env['HTTP_X_AMZ_SNS_MESSAGE_TYPE'] == 'SubscriptionConfirmation'
-      "*Subscription Confirmation*\nSomeone subscribed this channel to `#{message['TopicArn']}`. To confirm, please visit #{message['SubscribeURL']}."
+      {
+        text: "*Subscription Confirmation*\nSomeone subscribed this channel to `#{message['TopicArn']}`.",
+        attachments: [
+          {
+            text: 'Please confirm or deny this subscription.',
+            callback_id: 'subscription_confirm',
+            attachment_type: 'default',
+            fallback: "To confirm, please visit #{message['SubscribeURL']}",
+            actions: [
+              { name: 'confirm', text: 'Confirm', type: 'button', value: message['SubscribeURL'] },
+              { name: 'deny', text: "Deny", type: 'button', value: 'DENY' }
+            ]
+          }
+        ]
+      }.to_json
     else
       "*#{message['Subject']}*\n#{message['Message']}"
     end
