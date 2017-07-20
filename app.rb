@@ -114,10 +114,10 @@ class ScalingApp < Sinatra::Base
           }
         ]
       }
-      slack_bot.chat_postMessage(content.merge(channel: settings.control_channel_id, as_user: true))
+      slack_bot.chat_postMessage(content.merge(channel: settings.control_channel_name, as_user: true))
     else
       text = "*#{message['Subject']}*\n#{message['Message']}"
-      slack_bot.chat_postMessage(channel: settings.control_channel_id, text: text, as_user: true)
+      slack_bot.chat_postMessage(channel: settings.control_channel_name, text: text, as_user: true)
     end
     'OK'
   end
