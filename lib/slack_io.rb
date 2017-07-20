@@ -9,7 +9,9 @@ class SlackIO < IO
     result + msg
   }
 
-  def initialize(token:, channel:)
+  def initialize(token:, channel:, title: nil, user: nil)
+    @title = title
+    @user = user
     @slack = ::Slack::Web::Client.new(token: token)
     @channel = channel
     @io = StringIO.new('')
@@ -28,7 +30,10 @@ class SlackIO < IO
   private
 
     def message
-      "```\n#{@io.string.strip}\n```"
+      msg = ''
+      msg << "#{[@user, @title].compact.join(': ')}\n" if @user || @title
+      msg << "```\n#{@io.string.strip}\n```"
+      msg
     end
 
 end
