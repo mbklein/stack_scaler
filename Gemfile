@@ -7,6 +7,7 @@ gem 'zk'
 gem 'faraday'
 gem 'slack-notifier'
 gem 'puma'
+gem 'json'
 
 group :development do
   gem 'pry-byebug'

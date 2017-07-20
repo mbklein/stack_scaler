@@ -4,7 +4,7 @@ bind "unix://#{root}/tmp/puma/socket"
 pidfile "#{root}/tmp/puma/pid"
 state_path "#{root}/tmp/puma/state"
 rackup "#{root}/config.ru"
-daemonize true
+daemonize true unless ENV['NO_DAEMON']
 
 threads 4, 8
 
