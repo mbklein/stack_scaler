@@ -21,9 +21,9 @@ class SlackIO < IO
     @io << "\n" unless @message.nil?
     @io << "#{str}"
     if @message.nil?
-      @message = @slack.chat_postMessage(channel: @channel, text: message, as_user: true, parse: 'full')
+      @message = @slack.chat_postMessage(channel: @channel, text: message, as_user: true)
     else
-      @slack.chat_update(ts: @message['ts'], channel: @message['channel'], text: message, as_user: true, parse: 'full')
+      @slack.chat_update(ts: @message['ts'], channel: @message['channel'], text: message, as_user: true)
     end
   end
 

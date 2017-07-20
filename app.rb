@@ -20,7 +20,7 @@ class ScalingApp < Sinatra::Base
   helpers do
     def notifier
       if @notifier.nil?
-        @notifier = Logger.new(SlackIO.new(token: settings.bot_token, channel: params[:channel_id], title: params[:text], user: "<#{params[:user_id]}|#{params[:user_name]}>"))
+        @notifier = Logger.new(SlackIO.new(token: settings.bot_token, channel: params[:channel_id], title: params[:text], user: "<@#{params[:user_id]}|#{params[:user_name]}>"))
         @notifier.formatter = SlackIO::FORMATTER
       end
       @notifier
