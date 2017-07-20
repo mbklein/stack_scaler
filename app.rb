@@ -89,6 +89,7 @@ class ScalingApp < Sinatra::Base
   end
 
   post '/action' do
+    content_type 'application/json'
     payload = JSON.parse(params[:payload])
     case payload['callback_id']
     when 'subscription_confirm' then subscription_response(payload)
@@ -97,8 +98,8 @@ class ScalingApp < Sinatra::Base
 
   post '/notify' do
     message = JSON.parse(request.body.read)
-    text = if request.env['HTTP_X_AMZ_SNS_MESSAGE_TYPE'] == 'SubscriptionConfirmation'
-      {
+    if request.env['HTTP_X_AMZ_SNS_MESSAGE_TYPE'] == 'SubscriptionConfirmation'
+      content = {
         text: "*Subscription Confirmation*\nSomeone subscribed this channel to `#{message['TopicArn']}`.",
         attachments: [
           {
@@ -112,11 +113,12 @@ class ScalingApp < Sinatra::Base
             ]
           }
         ]
-      }.to_json
+      }
+      slack_bot.chat_postMessage(content.merge(channel: settings.control_channel_id, text: text, as_user: true))
     else
-      "*#{message['Subject']}*\n#{message['Message']}"
+      text = "*#{message['Subject']}*\n#{message['Message']}"
+      slack_bot.chat_postMessage(channel: settings.control_channel_id, text: text, as_user: true)
     end
-    slack_bot.chat_postMessage(channel: settings.control_channel_id, text: text, as_user: true)
     'OK'
   end
 
