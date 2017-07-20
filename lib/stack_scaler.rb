@@ -19,6 +19,12 @@ class StackScaler
     end
   end
 
+  def status
+    Aws::AutoScaling::Client.new.describe_auto_scaling_groups.auto_scaling_groups.each.with_object({}) do |g,h|
+      h[g.tags.find { |t| t.key = 'name' }.value] = g.instances.length
+    end
+  end
+
   def collections
     if @config[:collections].nil? || @config[:collections].empty?
       @config[:collections] = JSON.parse(solr_client.get('admin/collections', action: 'LIST', wt: 'json').body)['collections']

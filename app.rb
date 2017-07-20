@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby
 
 $: << File.expand_path('../lib', __FILE__)
+require 'active_support/core_ext/string/inflections'
 require 'json'
 require 'stack_scaler'
 require 'slack_io'
@@ -93,7 +94,9 @@ class ScalingApp < Sinatra::Base
           ephemeral('OK')
         end
       when 'status'
-        ephemeral("`#{params[:text]}` is not yet implemented")
+        scaler.status.each_pair do |tag, count|
+          notifier.info("#{tag}: #{count} #{'instance'.pluralize(count)} running")
+        end
       else
         ephemeral("`#{params[:text]}` is an unknown command")
       end
