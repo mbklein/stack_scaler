@@ -1,4 +1,4 @@
-require 'slack-web-client'
+require 'slack-ruby-client'
 
 class SlackIO < IO
 
