@@ -5,7 +5,7 @@ gem 'sinatra-contrib', require: false
 gem 'aws-sdk'
 gem 'zk'
 gem 'faraday'
-gem 'slack-notifier'
+gem 'slack-ruby-client'
 gem 'puma'
 gem 'json'
 
