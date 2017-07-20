@@ -10,6 +10,7 @@ class SlackIO < IO
   }
 
   def initialize(token:, channel:, title: nil, user: nil)
+    @index = 1
     @title = title
     @user = user
     @slack = ::Slack::Web::Client.new(token: token)
@@ -18,6 +19,12 @@ class SlackIO < IO
   end
 
   def write(str)
+    if @io.string.lines.length > 60
+      @slack.chat_update(ts: @message['ts'], channel: @message['channel'], text: message(true), as_user: true)
+      @message = nil
+      @io = StringIO.new('')
+      @index += 1
+    end
     @io << "\n" unless @message.nil?
     @io << "#{str}"
     if @message.nil?
@@ -29,9 +36,15 @@ class SlackIO < IO
 
   private
 
-    def message
+    def message(force_part = false)
       msg = ''
-      msg << "#{[@user, @title].compact.join(': ')}\n" if @user || @title
+      if @user || @title
+        msg << "#{[@user, @title].compact.join(': ')}"
+        msg << " [Part #{@index}]" if @index > 1 or force_part
+        msg << "\n"
+      else
+        msg << "Part #{@index}" if @index > 1
+      end
       msg << "```\n#{@io.string.strip}\n```"
       msg
     end
