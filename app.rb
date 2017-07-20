@@ -45,7 +45,7 @@ class ScalingApp < Sinatra::Base
       if params[:channel_id].to_s.sub(/^#/,'') == settings.control_channel_id
         yield
       else
-        ephemeral("Cannot execute this command from `#{params[:channel_id]}`. Control commands must be sent from `##{settings.control_channel_name}`")
+        ephemeral("Cannot execute this command from `#{params[:channel_name]}`. Control commands must be sent from `##{settings.control_channel_name}`")
       end
     end
 
