@@ -67,6 +67,10 @@ class ScalingApp < Sinatra::Base
       Process.detach(child_pid)
     end
 
+    def unescape_html(str)
+      str.gsub(Regexp.union(*Rack::Utils::ESCAPE_HTML.values)) { |c| Rack::Utils::ESCAPE_HTML.find { |k,v| v == c } }
+    end
+
     def subscription_response(payload)
       #original_message = payload['original_message']
       action = payload['actions'].first
@@ -74,7 +78,7 @@ class ScalingApp < Sinatra::Base
       when 'deny'
         ':negative_squared_cross_mark: _Subscription canceled_'
       when 'confirm'
-        Faraday.get(action['value'])
+        Faraday.get(unescape_html(action['value']))
         ':white_check_mark: _Subscription confirmed_'
       end
 
