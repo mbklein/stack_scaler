@@ -80,18 +80,18 @@ class ScalingApp < Sinatra::Base
       when 'resume'
         control_command do
           background { scaler.resume }
+          ephemeral('OK')
         end
-        ephemeral('OK')
       when 'force-down'
         control_command do
           background { scaler.scale_down }
+          ephemeral('OK')
         end
-        ephemeral('OK')
       when 'force-up'
         control_command do
           background { scaler.scale_up }
+          ephemeral('OK')
         end
-        ephemeral('OK')
       when 'status'
         ephemeral("`#{params[:text]}` is not yet implemented")
       else
