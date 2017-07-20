@@ -97,6 +97,7 @@ class ScalingApp < Sinatra::Base
         scaler.status.each_pair do |tag, count|
           notifier.info("#{tag}: #{count} #{'instance'.pluralize(count)} running")
         end
+        nil
       else
         ephemeral("`#{params[:text]}` is an unknown command")
       end
