@@ -68,7 +68,7 @@ class ScalingApp < Sinatra::Base
     end
 
     def unescape_html(str)
-      str.gsub(Regexp.union(*Rack::Utils::ESCAPE_HTML.values)) { |c| Rack::Utils::ESCAPE_HTML.find { |k,v| v == c } }
+      str.gsub(Regexp.union(*Rack::Utils::ESCAPE_HTML.values)) { |c| Rack::Utils::ESCAPE_HTML.find { |k,v| v == c }.first }
     end
 
     def subscription_response(payload)
