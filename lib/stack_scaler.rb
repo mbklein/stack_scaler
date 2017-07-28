@@ -99,8 +99,8 @@ class StackScaler
       Timeout::timeout(600) do
         begin
           loop do
-            response = solr_client.get('admin/collections', action: 'CLUSTERSTATUS', wt: 'json')
-            break if response.status == 200 && JSON.parse(response.body)['cluster']['live_nodes'].length >= count
+            response = zookeeper_client.get_children(path: '/live_nodes')
+            break if response[:stat].numChildren >= count
             sleep(30)
           end
         rescue
