@@ -7,6 +7,7 @@ class StackScaler
   attr_accessor :logger, :config
 
   class Error < StandardError; end
+  class ConnectionError < Error; end
 
   def initialize(config, logger: nil)
     @config = config
@@ -63,8 +64,27 @@ class StackScaler
     end
   end
 
-  def scale_up
+  def scale_up_zookeeper
+    scale_up match: /-zookeeper/
+    wait_for(:zookeeper)
+  end
+
+  def scale_up_solr
+    scale_up match: /-solr/
+    wait_for(:solr)
+  end
+
+  def scale_up_fcrepo
+    scale_up match: /-fcrepo/
+  end
+
+  def scale_up_webapps
+    scale_up match: /-(webapp|workers)/
+  end
+
+  def scale_up(match: nil)
     auto_scaling_groups.each_pair do |environment, name|
+      next unless match.nil? || (environment =~ match)
       capacity = capacity_for(environment)
       logger.info("Scaling #{environment} up to #{capacity.values_at(:min_size,:max_size,:desired_capacity).join('/')}")
       asg = Aws::AutoScaling::AutoScalingGroup.new(name: name)
@@ -83,18 +103,38 @@ class StackScaler
   end
 
   def resume
-    solr_environment = auto_scaling_groups.keys.find { |k| k =~ /-solr/ }
-    required_nodes = capacity_for(solr_environment)[:desired_capacity]
-
     logger.info('Resuming auto-scaling groups')
-    scale_up
-    wait_for_solr(required_nodes)
+    scale_up_fcrepo
+    scale_up_zookeeper
+    scale_up_solr
     solr_restore
+    scale_up_webapps
     logger.info('Restore complete')
   end
 
+  def wait_for(env)
+    environment = auto_scaling_groups.keys.find { |k| k.ends_with?("-#{env.to_s}") }
+    required_nodes = capacity_for(environment)[:desired_capacity]
+    send("wait_for_#{env}".to_sym, required_nodes)
+  end
+
+  def wait_for_zookeeper(count)
+    logger.info("Waiting for #{count} synced zookeeper ensemble nodes")
+    begin
+      Timeout::timeout(600) do
+        loop do
+          state = zookeeper_state
+          break if state['zk_server_state'] == 'leader' && state['zk_synced_followers'].to_i >= (count-1)
+          sleep(10)
+        end
+      end
+    rescue Timeout::Error
+      raise StackScaler::Error, 'Zookeeper failed to stabilize within 10 minutes'
+    end
+  end
+
   def wait_for_solr(count)
-    logger.info("Waiting for zookeeper and #{count} live solr nodes")
+    logger.info("Waiting for #{count} live solr nodes")
     begin
       Timeout::timeout(600) do
         begin
@@ -109,7 +149,7 @@ class StackScaler
         end
       end
     rescue Timeout::Error
-      raise StackScaler::Error, 'Zookeeper and solr failed to stabilize within 10 minutes'
+      raise StackScaler::Error, 'Solr failed to stabilize within 10 minutes'
     end
   end
 
@@ -129,6 +169,19 @@ class StackScaler
 
     def zookeeper_client
       @zookeeper_client ||= Zookeeper.new("#{host_for('zk')}:2181")
+    end
+
+    def zookeeper_state
+      begin
+        Timeout::timeout(5) do
+          TCPSocket.open('zk.repo.vpc.rdc-staging.library.northwestern.edu', 2181) do |sock|
+            sock.puts 'mntr'
+            Hash[sock.read.lines.collect { |l| l.chomp.split(/\t/) }]
+          end
+        end
+      rescue
+        { "zk_state" => "unavailable" }
+      end
     end
 
     def fcrepo_client
