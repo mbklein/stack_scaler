@@ -38,8 +38,8 @@ class StackScaler
     collections.each.with_object({}) do |collection, result|
       logger.info("Backing up collection: #{collection}")
       backup_name = "scaling_#{collection}_backup_#{timestamp}"
-      response = solr_client.get('admin/collections', action: 'BACKUP', name: backup_name, collection: collection, location: location, wt: 'json')
-      raise StackScaler::Error, "Backup of `#{collection}` failed:\n#{response.body}" unless JSON.parse(response.body)['success']
+      response = JSON.parse(solr_client.get('admin/collections', action: 'BACKUP', name: backup_name, collection: collection, location: location, wt: 'json').body)
+      raise StackScaler::Error, "Backup of `#{collection}` failed:\n#{response.to_json}" unless response['success'] || (response['responseHeader']['status'] == 0)
       result[collection] = backup_name
     end
   end
@@ -49,8 +49,8 @@ class StackScaler
     @config[:backups].each_pair do |collection, backup_name|
       logger.info("Restoring collection: #{collection}")
       solr_client.get('admin/collections', action: 'DELETE', name: collection, wt: 'json')
-      response = solr_client.get('admin/collections', action: 'RESTORE', name: backup_name, collection: collection, location: location, maxShardsPerNode: 1, wt: 'json')
-      raise StackScaler::Error, "Restore of `#{collection}` failed:\n#{response.body}" unless JSON.parse(response.body)['success']
+      response = JSON.parse(solr_client.get('admin/collections', action: 'RESTORE', name: backup_name, collection: collection, location: location, maxShardsPerNode: 1, wt: 'json').body)
+      raise StackScaler::Error, "Restore of `#{collection}` failed:\n#{response.to_json}" unless response['success'] || (response['responseHeader']['status'] == 0)
     end
   end
 
@@ -174,7 +174,7 @@ class StackScaler
     def zookeeper_state
       begin
         Timeout::timeout(5) do
-          TCPSocket.open('zk.repo.vpc.rdc-staging.library.northwestern.edu', 2181) do |sock|
+          TCPSocket.open(host_for('zk'), 2181) do |sock|
             sock.puts 'mntr'
             Hash[sock.read.lines.collect { |l| l.chomp.split(/\t/) }]
           end
