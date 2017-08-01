@@ -157,8 +157,8 @@ class ScalingApp < Sinatra::Base
           ephemeral('OK')
         end
       when 'status'
-        Hash[scaler.status.sort].each_pair do |tag, count|
-          notifier.info("#{tag}: #{count} #{'instance'.pluralize(count)} running")
+        Hash[scaler.status.sort].each_pair do |tag, data|
+          notifier.info("#{tag}: #{data[:count]} #{'instance'.pluralize(data[:count])} running (#{data[:health].upcase})")
         end
         nil
       else

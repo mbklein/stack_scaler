@@ -22,8 +22,12 @@ class StackScaler
   end
 
   def status
+    environments = Aws::ElasticBeanstalk::Client.new.describe_environments.environments
     Aws::AutoScaling::Client.new.describe_auto_scaling_groups.auto_scaling_groups.each.with_object({}) do |g,h|
-      h[g.tags.find { |t| t.key = 'name' }.value] = g.instances.length
+      environment_name = g.tags.find { |t| t.key = 'name' }.value
+      environment_info = environments.find { |e| e.environment_name == environment_name }
+      health_color = environment_info&.health || 'Unknown'
+      h[environment_name] = { count: g.instances.length, health: health_color }
     end
   end
 
