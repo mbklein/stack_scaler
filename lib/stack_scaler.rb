@@ -1,6 +1,7 @@
 require 'timeout'
 require 'aws-sdk'
 require 'faraday'
+require 'ostruct'
 require 'zookeeper'
 
 class StackScaler
@@ -28,7 +29,7 @@ class StackScaler
 
   def collections
     if @config[:collections].nil? || @config[:collections].empty?
-      @config[:collections] = JSON.parse(solr_client.get('admin/collections', action: 'LIST', wt: 'json').body)['collections']
+      @config[:collections] = solr_collections_api(:list).collections
     end
     @config[:collections]
   end
@@ -38,19 +39,23 @@ class StackScaler
     collections.each.with_object({}) do |collection, result|
       logger.info("Backing up collection: #{collection}")
       backup_name = "scaling_#{collection}_backup_#{timestamp}"
-      response = JSON.parse(solr_client.get('admin/collections', action: 'BACKUP', name: backup_name, collection: collection, location: location, wt: 'json').body)
-      raise StackScaler::Error, "Backup of `#{collection}` failed:\n#{response.to_json}" unless response['success'] || (response['responseHeader']['status'] == 0)
+      response = solr_collections_api(:backup, name: backup_name, collection: collection, location: location)
+      raise StackScaler::Error, "Backup of `#{collection}` failed:\n#{response.to_h.to_json}" unless response.success || (response.responseHeader.status == 0)
       result[collection] = backup_name
     end
   end
 
   def solr_restore
     location = '/data/backup'
+    active_nodes = solr_collections_api(:clusterstatus).cluster.live_nodes
     @config[:backups].each_pair do |collection, backup_name|
       logger.info("Restoring collection: #{collection}")
-      solr_client.get('admin/collections', action: 'DELETE', name: collection, wt: 'json')
-      response = JSON.parse(solr_client.get('admin/collections', action: 'RESTORE', name: backup_name, collection: collection, location: location, maxShardsPerNode: 1, wt: 'json').body)
-      raise StackScaler::Error, "Restore of `#{collection}` failed:\n#{response.to_json}" unless response['success'] || (response['responseHeader']['status'] == 0)
+      solr_collections_api(:delete, name: collection)
+      response = solr_collections_api(:restore, name: backup_name, collection: collection, location: location, maxShardsPerNode: 1)
+      raise StackScaler::Error, "Restore of `#{collection}` failed:\n#{response.to_h.to_json}" unless response.success || (response.responseHeader.status == 0)
+      while solr_collections_api(:clusterstatus, collection: collection).cluster.collections[collection].shards.shard1.replicas.to_h.length < active_nodes
+        solr_collections_api(:addreplica, collection: collection, shard: 'shard1')
+      end
     end
   end
 
@@ -192,4 +197,17 @@ class StackScaler
       @solr_client ||= Faraday.new("http://#{host_for('solr')}/solr")
     end
 
+    def solr_collections_api(action, args = {})
+      params = args.merge(action: action.to_s.upcase, wt: 'json')
+      response = solr_client.get('admin/collections', params)
+      to_ostruct(JSON.parse(response.body))
+    end
+
+    def to_ostruct(hash)
+      o = OpenStruct.new(hash)
+      hash.each.with_object(o) do |(k,v), o|
+        o.send(:"#{k}=", to_ostruct(v)) if v.respond_to? :each_pair
+      end
+      o
+    end
 end
