@@ -22,7 +22,8 @@ class StackScaler
   end
 
   def status
-    environments = Aws::ElasticBeanstalk::Client.new.describe_environments.environments
+    environment_info = Aws::ElasticBeanstalk::Client.new.describe_environments
+    environments = environment_info.environments
     Aws::AutoScaling::Client.new.describe_auto_scaling_groups.auto_scaling_groups.each.with_object({}) do |g,h|
       environment_name = g.tags.find { |t| t.key = 'name' }.value
       environment_info = environments.find { |e| e.environment_name == environment_name }
