@@ -56,11 +56,11 @@ class StackScaler
     @config[:backups].each_pair do |collection, backup_name|
       logger.info("Restoring collection: #{collection}")
       solr_collections_api(:delete, name: collection)
-      response = solr_collections_api(:restore, name: backup_name, collection: collection, location: location, maxShardsPerNode: 1)
+      response = solr_collections_api(:restore, name: backup_name, collection: collection, location: location, maxShardsPerNode: 1, replicationFactor: active_nodes)
       raise StackScaler::Error, "Restore of `#{collection}` failed:\n#{response.to_h.to_json}" unless response.success || (response.responseHeader.status == 0)
-      while solr_collections_api(:clusterstatus, collection: collection).cluster.collections[collection].shards.shard1.replicas.to_h.length < active_nodes
-        solr_collections_api(:addreplica, collection: collection, shard: 'shard1')
-      end
+      # while solr_collections_api(:clusterstatus, collection: collection).cluster.collections[collection].shards.shard1.replicas.to_h.length < active_nodes
+      #   solr_collections_api(:addreplica, collection: collection, shard: 'shard1')
+      # end
     end
   end
 
