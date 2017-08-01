@@ -52,7 +52,7 @@ class StackScaler
 
   def solr_restore
     location = '/data/backup'
-    active_nodes = solr_collections_api(:clusterstatus).cluster.live_nodes
+    active_nodes = solr_collections_api(:clusterstatus).cluster.live_nodes.length
     @config[:backups].each_pair do |collection, backup_name|
       logger.info("Restoring collection: #{collection}")
       solr_collections_api(:delete, name: collection)
