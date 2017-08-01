@@ -44,6 +44,7 @@ class StackScaler
     collections.each.with_object({}) do |collection, result|
       logger.info("Backing up collection: #{collection}")
       backup_name = "scaling_#{collection}_backup_#{timestamp}"
+      solr_client.get("#{collection}/update", optimize: true)
       response = solr_collections_api(:backup, name: backup_name, collection: collection, location: location)
       raise StackScaler::Error, "Backup of `#{collection}` failed:\n#{response.to_h.to_json}" unless response.success || (response.responseHeader.status == 0)
       result[collection] = backup_name
