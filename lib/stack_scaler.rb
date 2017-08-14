@@ -65,13 +65,28 @@ class StackScaler
     end
   end
 
+  def solr_replicate
+    cluster = solr_collections_api(:clusterstatus).cluster
+    active_nodes = cluster.live_nodes.length
+    collections = cluster.collections
+    collections.each_pair do |name, details|
+      collection_nodes = details.shards.shard1.replicas.length
+      nodes_needed = (active_nodes - collection_nodes)
+      logger.info("Adding #{nodes_needed} replicas to #{name} collection")
+      nodes_needed.times do
+        solr_collections_api(:addreplica, collection: name, shard: 'shard1')
+      end
+    end
+  end
+
   def scale_down
     auto_scaling_groups.each_pair do |environment, name|
       logger.info("Scaling #{environment} down to zero")
       asg = Aws::AutoScaling::AutoScalingGroup.new(name: name)
       asg.suspend_processes(scaling_processes: %w(Launch HealthCheck ReplaceUnhealthy AZRebalance AlarmNotification ScheduledActions AddToLoadBalancer))
       asg.disable_metrics_collection
-      asg.update(min_size: 0, max_size: 0, desired_capacity: 0)
+      capacity = environment =~ /zookeeper|solr/ ? 1 : 0
+      asg.update(min_size: capacity, max_size: capacity, desired_capacity: capacity)
     end
   end
 
@@ -118,6 +133,7 @@ class StackScaler
     scale_up_fcrepo
     scale_up_zookeeper
     scale_up_solr
+    solr_replicate
 #    solr_restore
     scale_up_webapps
     logger.info('Restore complete')
