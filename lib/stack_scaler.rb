@@ -106,8 +106,8 @@ class StackScaler
   end
 
   def suspend
-    logger.info('Backing up solr/zookeeper collections')
-    @config[:backups] = solr_backup
+#    logger.info('Backing up solr/zookeeper collections')
+#    @config[:backups] = solr_backup
     logger.info('Suspending auto-scaling groups')
     scale_down
     logger.info('Suspend complete')
@@ -118,7 +118,7 @@ class StackScaler
     scale_up_fcrepo
     scale_up_zookeeper
     scale_up_solr
-    solr_restore
+#    solr_restore
     scale_up_webapps
     logger.info('Restore complete')
   end
