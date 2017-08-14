@@ -81,11 +81,11 @@ class StackScaler
 
   def scale_down
     auto_scaling_groups.each_pair do |environment, name|
-      logger.info("Scaling #{environment} down to zero")
+      capacity = environment =~ /zookeeper|solr/ ? 1 : 0
+      logger.info("Scaling #{environment} down to #{capacity}")
       asg = Aws::AutoScaling::AutoScalingGroup.new(name: name)
       asg.suspend_processes(scaling_processes: %w(Launch HealthCheck ReplaceUnhealthy AZRebalance AlarmNotification ScheduledActions AddToLoadBalancer))
       asg.disable_metrics_collection
-      capacity = environment =~ /zookeeper|solr/ ? 1 : 0
       asg.update(min_size: capacity, max_size: capacity, desired_capacity: capacity)
     end
   end
