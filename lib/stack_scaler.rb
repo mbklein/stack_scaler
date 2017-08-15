@@ -68,9 +68,8 @@ class StackScaler
   def solr_replicate
     cluster = solr_collections_api(:clusterstatus).cluster
     active_nodes = cluster.live_nodes.length
-    collections = cluster.collections
-    collections.each_pair do |name, details|
-      collection_nodes = details.shards.shard1.replicas.length
+    cluster.collections.each_pair do |name, details|
+      collection_nodes = details.shards.shard1.replicas.to_h.length
       nodes_needed = (active_nodes - collection_nodes)
       logger.info("Adding #{nodes_needed} replicas to #{name} collection")
       nodes_needed.times do
