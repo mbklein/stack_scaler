@@ -78,6 +78,7 @@ class StackScaler
       nodes_needed.times do
         solr_collections_api(:addreplica, collection: name, shard: 'shard1')
       end
+      solr_collections_api(:reload, name: name)
     end
   end
 
