@@ -8,6 +8,7 @@ gem 'faraday'
 gem 'slack-ruby-client'
 gem 'puma'
 gem 'json'
+gem 'rake'
 
 group :development do
   gem 'pry-byebug'
