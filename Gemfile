@@ -9,6 +9,7 @@ gem 'slack-ruby-client'
 gem 'puma'
 gem 'json'
 gem 'rake'
+gem 'term-ansicolor'
 
 group :development do
   gem 'pry-byebug'
