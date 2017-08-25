@@ -70,8 +70,8 @@ class StackScaler
     active_nodes = cluster.live_nodes.length
     cluster.collections.each_pair do |name, details|
       replicas = replicas = details.shards.shard1.replicas.to_h.values.group_by(&:state)
-      down_count = replicas['down'].length
-      collection_nodes = replicas['active'].length
+      down_count = replicas['down']&.length || 0
+      collection_nodes = replicas['active']&.length || 0
       nodes_needed = (active_nodes - collection_nodes)
       logger.info("#{name}: Removing #{down_count} dead replicas and adding #{nodes_needed} new replicas")
       solr_collections_api(:deletereplica, collection: name, count: down_count, shard: 'shard1')
