@@ -27,9 +27,9 @@ class ScalingApp < Sinatra::Base
       if params[:user_id] && params[:user_name]
         "<@#{params[:user_id]}|#{params[:user_name]}>"
       elsif params[:user_id]
-        "<@#{params[:user_id]}>"
+        "@#{params[:user_id]}"
       elsif params[:user_name]
-        "<#{params[:user_name]}>"
+        "#{params[:user_name]}"
       else
         nil
       end
