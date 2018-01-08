@@ -23,9 +23,21 @@ class ScalingApp < Sinatra::Base
       @slack_bot ||= ::Slack::Web::Client.new(token: settings.bot_token)
     end
 
+    def user_to_notify
+      if params[:user_id] && params[:user_name]
+        "<@#{params[:user_id]}|#{params[:user_name]}>"
+      elsif params[:user_id]
+        "<@#{params[:user_id]}>"
+      elsif params[:user_name]
+        "<#{params[:user_name]}>"
+      else
+        nil
+      end
+    end
+
     def notifier
       if @notifier.nil?
-        @notifier = Logger.new(SlackIO.new(token: settings.bot_token, channel: params[:channel_id], title: params[:text], user: "<@#{params[:user_id]}|#{params[:user_name]}>"))
+        @notifier = Logger.new(SlackIO.new(token: settings.bot_token, channel: params[:channel_id], title: params[:text], user: user_to_notify))
         @notifier.formatter = SlackIO::FORMATTER
       end
       @notifier
