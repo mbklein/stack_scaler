@@ -74,7 +74,9 @@ class StackScaler
       collection_nodes = replicas['active']&.length || 0
       nodes_needed = (active_nodes - collection_nodes)
       logger.info("#{name}: Removing #{down_count} dead replicas and adding #{nodes_needed} new replicas")
-      solr_collections_api(:deletereplica, collection: name, count: down_count, shard: 'shard1')
+      if down_count > 0
+        solr_collections_api(:deletereplica, collection: name, count: down_count, shard: 'shard1')
+      end
       nodes_needed.times do
         solr_collections_api(:addreplica, collection: name, shard: 'shard1')
       end
@@ -107,6 +109,10 @@ class StackScaler
     scale_up match: /-fcrepo/
   end
 
+  def scale_up_cantaloupe
+    scale_up match: /-cantaloupe/
+  end
+
   def scale_up_webapps
     scale_up match: /-(webapp|workers)/
   end
@@ -133,6 +139,7 @@ class StackScaler
 
   def resume
     logger.info('Resuming auto-scaling groups')
+    scale_up_cantaloupe
     scale_up_fcrepo
     scale_up_zookeeper
     scale_up_solr
