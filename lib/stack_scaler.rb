@@ -42,9 +42,10 @@ class StackScaler
   def solr_backup
     location = '/data/backup'
     collections.each.with_object({}) do |collection, result|
-      logger.info("Backing up collection: #{collection}")
       backup_name = "scaling_#{collection}_backup_#{timestamp}"
-      solr_client.get("#{collection}/update", optimize: true)
+      logger.info("Committing and optimizing: #{collection}")
+      solr_client.get("#{collection}/update", commit: true, optimize: true)
+      logger.info("Backing up collection: #{collection}")
       response = solr_collections_api(:backup, name: backup_name, collection: collection, location: location)
       raise StackScaler::Error, "Backup of `#{collection}` failed:\n#{response.to_h.to_json}" unless response.success || (response.responseHeader.status == 0)
       result[collection] = backup_name
@@ -59,9 +60,6 @@ class StackScaler
       solr_collections_api(:delete, name: collection)
       response = solr_collections_api(:restore, name: backup_name, collection: collection, location: location, maxShardsPerNode: 1, replicationFactor: active_nodes)
       raise StackScaler::Error, "Restore of `#{collection}` failed:\n#{response.to_h.to_json}" unless response.success || (response.responseHeader.status == 0)
-      # while solr_collections_api(:clusterstatus, collection: collection).cluster.collections[collection].shards.shard1.replicas.to_h.length < active_nodes
-      #   solr_collections_api(:addreplica, collection: collection, shard: 'shard1')
-      # end
     end
   end
 
@@ -130,8 +128,8 @@ class StackScaler
   end
 
   def suspend
-#    logger.info('Backing up solr/zookeeper collections')
-#    @config[:backups] = solr_backup
+    logger.info('Backing up solr/zookeeper collections')
+    @config[:backups] = solr_backup
     logger.info('Suspending auto-scaling groups')
     scale_down
     logger.info('Suspend complete')
@@ -143,8 +141,8 @@ class StackScaler
     scale_up_fcrepo
     scale_up_zookeeper
     scale_up_solr
-    solr_replicate
-#    solr_restore
+#    solr_replicate
+    solr_restore
     scale_up_webapps
     logger.info('Restore complete')
   end
