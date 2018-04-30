@@ -168,6 +168,10 @@ class ScalingApp < Sinatra::Base
           background { scaler.scale_up }
           ephemeral('OK')
         end
+      when 'solr-status'
+        scaler.solr_status.each_line do |line|
+          notifier.info(line)
+        end
       when 'status'
         Hash[scaler.status.sort].each_pair do |tag, data|
           notifier.info("#{tag}: #{data[:count]} #{'instance'.pluralize(data[:count])} running (#{data[:health].upcase})")

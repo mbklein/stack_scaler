@@ -63,6 +63,27 @@ class StackScaler
     end
   end
 
+  def solr_status
+    data = solr_cores_api(:status)
+    report = {}.tap do |hash|
+      data.each_pair do |node, node_info|
+        node_info['status'].each_pair do |core, core_info|
+          hash[core_info['cloud']] = core_info['index']
+        end
+      end
+    end
+
+    report = Hash[report.sort_by { |k, v| k['collection']+k['shard']+k['replica'] }]
+
+    core_columns = %w(collection shard replica)
+    data_columns = %w(numDocs maxDoc deletedDocs current hasDeletions)
+    table = Text::Table.new(head: core_columns + data_columns)
+    report.each_pair do |core, index|
+      table.rows << core.values_at(*core_columns) + index.values_at(*data_columns)
+    end
+    table.to_s
+  end
+
   def solr_replicate
     cluster = solr_collections_api(:clusterstatus).cluster
     active_nodes = cluster.live_nodes.length
@@ -232,6 +253,20 @@ class StackScaler
       params = args.merge(action: action.to_s.upcase, wt: 'json')
       response = solr_client.get('admin/collections', params)
       to_ostruct(JSON.parse(response.body))
+    end
+
+    def solr_cores_api(action, nodes = [], args = {})
+      if nodes.empty?
+        nodes = zookeeper_client.get_children(path: '/live_nodes')[:children]
+      end
+      params = args.merge(action: action.to_s.upcase, wt: 'json')
+      {}.tap do |result|
+        nodes.each do |node|
+          node_client = Faraday.new("http://#{node.sub(/_solr$/, '')}/solr")
+          response = node_client.get('admin/cores', params)
+          result[node] = JSON.parse(response.body)
+        end
+      end
     end
 
     def to_ostruct(hash)

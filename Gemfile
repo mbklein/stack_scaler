@@ -10,6 +10,7 @@ gem 'puma'
 gem 'json'
 gem 'rake'
 gem 'term-ansicolor'
+gem 'text-table'
 
 group :development do
   gem 'pry-byebug'
