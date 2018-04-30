@@ -2,6 +2,7 @@ require 'timeout'
 require 'aws-sdk'
 require 'faraday'
 require 'ostruct'
+require 'text-table'
 require 'zookeeper'
 
 class StackScaler
@@ -77,7 +78,7 @@ class StackScaler
 
     core_columns = %w(collection shard replica)
     data_columns = %w(numDocs maxDoc deletedDocs current hasDeletions)
-    table = Text::Table.new(head: core_columns + data_columns)
+    table = ::Text::Table.new(head: core_columns + data_columns)
     report.each_pair do |core, index|
       table.rows << core.values_at(*core_columns) + index.values_at(*data_columns)
     end
