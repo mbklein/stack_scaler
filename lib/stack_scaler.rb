@@ -40,6 +40,27 @@ class StackScaler
     @config[:collections]
   end
 
+  def replace_solr_leaders
+    leaders = solr_collections_api(:clusterstatus).cluster.collections.to_h.tap do |hash|
+      hash.each_pair do |collection, status|
+        hash[collection] = [].tap do |collection_leaders|
+          status.shards.to_h.each_pair do |shard, data|
+            replicas = data.replicas.to_h
+            collection_leaders << { shard: shard, replica: replicas.keys.find { |k| replicas[k].leader == 'true' }.to_s }
+          end
+        end
+      end
+    end
+
+    leaders.each_pair do |collection, collection_leaders|
+      collection_leaders.each do |leader_info|
+        yield(collection, leader_info[:shard], leader_info[:replica]) if block_given?
+        solr_collections_api(:deletereplica, collection: collection.to_s, shard: leader_info[:shard].to_s, replica: leader_info[:replica].to_s)
+        solr_collections_api(:addreplica, collection: collection.to_s, shard: leader_info[:shard].to_s)
+      end
+    end
+  end
+
   def solr_backup
     location = '/data/backup'
     collections.each.with_object({}) do |collection, result|
@@ -164,8 +185,9 @@ class StackScaler
     scale_up_fcrepo
     scale_up_zookeeper
     scale_up_solr
-#    solr_replicate
+    sleep(15)
     solr_restore
+    replace_solr_leaders
     scale_up_webapps
     logger.info('Restore complete')
   end
