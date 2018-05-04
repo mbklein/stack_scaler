@@ -168,7 +168,8 @@ class ScalingApp < Sinatra::Base
           background { scaler.scale_up }
           ephemeral('OK')
         end
-      when 'replace-solr-leaders' do
+        nil
+      when 'replace-solr-leaders'
         control_command do
           scaler.replace_solr_leaders do |collection, shard, replica|
             notifier.info("Replacing #{collection}/#{shard}/#{replica}")
