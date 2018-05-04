@@ -175,7 +175,6 @@ class ScalingApp < Sinatra::Base
           end
         end
         nil
-      end
       when 'solr-status'
         "#{user_to_notify}: solr-status\n```\n#{scaler.solr_status}\n```"
       when 'status'
