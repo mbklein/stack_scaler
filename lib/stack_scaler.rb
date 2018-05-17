@@ -89,7 +89,7 @@ class StackScaler
     elsif backup_name.nil?
       logger.info("Not restoring collection #{collection} because no backup exists")
     else
-      logger.info("Restoring collection: #{collection}")
+      logger.info("Restoring collection: #{collection} from #{backup_name}")
       solr_collections_api(:delete, name: collection)
       response = solr_collections_api(:restore, name: backup_name, collection: collection, location: location, maxShardsPerNode: 1, replicationFactor: active_nodes)
       raise StackScaler::Error, "Restore of `#{collection}` failed:\n#{response.to_h.to_json}" unless response.success || (response.responseHeader.status == 0)
