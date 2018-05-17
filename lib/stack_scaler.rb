@@ -83,7 +83,7 @@ class StackScaler
   def solr_restore(collection)
     location = '/data/backup'
     active_nodes = solr_collections_api(:clusterstatus).cluster.live_nodes.length
-    backup_name = Dir["/var/app/solr-backup/scaling_#{collection}_backup_*"].sort.last
+    backup_name = File.basename(Dir["/var/app/solr-backup/scaling_#{collection}_backup_*"].sort.last)
     unless backup_name.nil?
       logger.info("Restoring collection: #{collection}")
       solr_collections_api(:delete, name: collection)
