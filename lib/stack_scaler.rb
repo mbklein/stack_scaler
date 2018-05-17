@@ -74,10 +74,17 @@ class StackScaler
     end
   end
 
-  def solr_restore
+  def solr_restore_all_collections
+    collections.each do |collection|
+      solr_restore(collection)
+    end
+  end
+
+  def solr_restore(collection)
     location = '/data/backup'
     active_nodes = solr_collections_api(:clusterstatus).cluster.live_nodes.length
-    @config[:backups].each_pair do |collection, backup_name|
+    backup_name = Dir["/var/app/solr-backup/scaling_#{collection}_backup_*"].sort.last
+    unless backup_name.nil?
       logger.info("Restoring collection: #{collection}")
       solr_collections_api(:delete, name: collection)
       response = solr_collections_api(:restore, name: backup_name, collection: collection, location: location, maxShardsPerNode: 1, replicationFactor: active_nodes)
@@ -186,7 +193,7 @@ class StackScaler
     scale_up_zookeeper
     scale_up_solr
     sleep(15)
-    solr_restore
+    solr_restore_all_collections
     replace_solr_leaders
     scale_up_webapps
     logger.info('Restore complete')
