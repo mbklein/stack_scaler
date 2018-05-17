@@ -84,7 +84,11 @@ class StackScaler
     location = '/data/backup'
     active_nodes = solr_collections_api(:clusterstatus).cluster.live_nodes.length
     backup_name = File.basename(Dir["/var/app/solr-backup/scaling_#{collection}_backup_*"].sort.last)
-    unless backup_name.nil?
+    if solr_collections_api(:list).collections.include?(collection)
+      logger.info("Not restoring collection #{collection} because it already exists")
+    elsif backup_name.nil?
+      logger.info("Not restoring collection #{collection} because no backup exists")
+    else
       logger.info("Restoring collection: #{collection}")
       solr_collections_api(:delete, name: collection)
       response = solr_collections_api(:restore, name: backup_name, collection: collection, location: location, maxShardsPerNode: 1, replicationFactor: active_nodes)
