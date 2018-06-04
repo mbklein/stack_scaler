@@ -100,7 +100,7 @@ class StackScaler
   def solr_restore(collection)
     location = '/data/backup'
     active_nodes = solr_collections_api(:clusterstatus).cluster.live_nodes.length
-    backup_name = find_backup
+    backup_name = find_backup(collection)
     if solr_collections_api(:list).collections.include?(collection)
       logger.info("Not restoring collection #{collection} because it already exists")
     elsif backup_name.nil?
