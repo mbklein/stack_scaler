@@ -90,7 +90,9 @@ class StackScaler
     sleep(2)
     solr_restore(collection)
     sleep(5)
+    logger.info("Replacing solr leaders")
     replace_solr_leaders
+    logger.info("Solr collection #{collection} replaced.")
   end
 
   def find_backup(collection)
