@@ -186,6 +186,12 @@ class ScalingApp < Sinatra::Base
           notifier.info("#{tag}: #{data[:count]} #{'instance'.pluralize(data[:count])} running (#{data[:health].upcase})")
         end
         nil
+      when /resolr (.+)/
+        control_command do
+          background { scaler.resolr($1) }
+          ephemeral('OK')
+        end
+        nil
       else
         ephemeral("`#{params[:text]}` is an unknown command")
       end

@@ -80,10 +80,27 @@ class StackScaler
     end
   end
 
+  def resolr(collection)
+    if find_backup(collection).nil?
+      logger.info("Not replacing collection #{collection} because no current backup exists.")
+      return false
+    end
+    logger.info("Deleting collection: #{collection}")
+    solr_collections_api(:delete, name: collection)
+    sleep(2)
+    solr_restore(collection)
+    sleep(5)
+    replace_solr_leaders
+  end
+
+  def find_backup(collection)
+    File.basename(Dir["/var/app/solr-backup/scaling_#{collection}_backup_*"].sort.last)
+  end
+
   def solr_restore(collection)
     location = '/data/backup'
     active_nodes = solr_collections_api(:clusterstatus).cluster.live_nodes.length
-    backup_name = File.basename(Dir["/var/app/solr-backup/scaling_#{collection}_backup_*"].sort.last)
+    backup_name = find_backup
     if solr_collections_api(:list).collections.include?(collection)
       logger.info("Not restoring collection #{collection} because it already exists")
     elsif backup_name.nil?
